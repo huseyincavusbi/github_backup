@@ -7,7 +7,7 @@
 GITHUB_USER="YOUR_USERNAME"
 
 # Directory to save the backups in.
-BACKUP_DIR="/path/to/your/backups"
+BACKUP_DIR="/workspaces/codespace/backups/backup_$(date +%m_%d_%y)"
 
 # The maximum number of repositories to back up at the same time.
 # Start with a low number (e.g., 4) and increase it based on your
