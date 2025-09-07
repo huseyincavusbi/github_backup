@@ -7,7 +7,7 @@
 GITHUB_USER=${GITHUB_USER:-"your_username"}
 
 # Directory to save the backups in.
-BACKUP_DIR="backups/backup_$(date +%Y_%m_%d)"
+BACKUP_DIR="backups/backup_$(date +%d.%m.%Y)"
 
 # The maximum number of repositories to back up at the same time.
 # Start with a low number (e.g., 4) and increase it based on your
