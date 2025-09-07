@@ -1,0 +1,40 @@
+name: GitHub Backup to Drive
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight UTC
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq rclone
+
+      - name: Run backup script
+        run: |
+          chmod +x github_backup.sh
+          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} ./github_backup.sh
+        working-directory: github_backup
+
+      - name: Configure rclone
+        run: |
+          mkdir -p ~/.config/rclone
+          echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
+
+      - name: Upload to Google Drive
+        run: |
+          LATEST_BACKUP=$(ls -td github_backup/backups/backup_* | head -1)
+          if [ -n "$LATEST_BACKUP" ]; then
+            rclone copy "$LATEST_BACKUP" gdrivegit:GitHub_Backups/ --progress
+            # Keep only the last 4 backups in Drive
+            rclone lsd gdrivegit:GitHub_Backups/ | sort | head -n -4 | xargs -I {} rclone purge gdrivegit:GitHub_Backups/{}
+          else
+            echo "No backup found to upload"
+          fi
