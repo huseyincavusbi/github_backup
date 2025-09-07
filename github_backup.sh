@@ -4,10 +4,10 @@
 
 # --- Configuration ---
 # Your GitHub username
-GITHUB_USER="YOUR_USERNAME"
+GITHUB_USER="huseyincavusbi"
 
 # Directory to save the backups in.
-BACKUP_DIR="/backups/backup_$(date +%m_%d_%y)"
+BACKUP_DIR="backups/backup_$(date +%Y_%m_%d)"
 
 # The maximum number of repositories to back up at the same time.
 # Start with a low number (e.g., 4) and increase it based on your
@@ -15,10 +15,16 @@ BACKUP_DIR="/backups/backup_$(date +%m_%d_%y)"
 MAX_JOBS=4
 # --- End Configuration ---
 
+# Check for dependencies
+if ! command -v jq &> /dev/null; then
+  echo "Error: jq is not installed. Please install it first."
+  exit 1
+fi
+
 # Check for Personal Access Token
 if [ -z "$GITHUB_TOKEN" ]; then
   echo "Error: GITHUB_TOKEN environment variable is not set."
-  echo "Usage: GITHUB_TOKEN=your_token_here ./github_backup_parallel.sh"
+  echo "Usage: GITHUB_TOKEN=your_token_here ./github_backup.sh"
   exit 1
 fi
 
@@ -26,18 +32,37 @@ fi
 mkdir -p "$BACKUP_DIR"
 cd "$BACKUP_DIR" || exit
 
-echo "Fetching repository list for user: $GITHUB_USER..."
+LOG_FILE="backup.log"
 
-# Fetch the list of repositories
-# We use 'jq' to parse the JSON output.
-REPO_URLS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/user/repos?per_page=200" | jq -r '.[].clone_url')
+# Function to log messages
+log() {
+  echo "$1" | tee -a "$LOG_FILE"
+}
+
+log "Fetching repository list for user: $GITHUB_USER..."
+
+# Fetch the list of repositories with pagination
+REPO_URLS=""
+PAGE=1
+while true; do
+  RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/user/repos?per_page=100&page=$PAGE")
+  if [ -z "$RESPONSE" ] || [ "$RESPONSE" = "[]" ]; then
+    break
+  fi
+  PAGE_URLS=$(echo "$RESPONSE" | jq -r '.[].clone_url')
+  if [ -z "$PAGE_URLS" ]; then
+    break
+  fi
+  REPO_URLS="$REPO_URLS $PAGE_URLS"
+  PAGE=$((PAGE + 1))
+done
 
 if [ -z "$REPO_URLS" ]; then
   echo "Could not fetch repositories. Check your username and token."
   exit 1
 fi
 
-echo "Found repositories. Starting parallel backup with up to $MAX_JOBS jobs..."
+log "Found repositories. Starting parallel backup with up to $MAX_JOBS jobs..."
 
 for REPO_URL in $REPO_URLS; do
   # This block is what gets run in parallel.
@@ -72,6 +97,6 @@ for REPO_URL in $REPO_URLS; do
 done
 
 # Wait for all remaining background jobs to complete before exiting
-echo "Waiting for all backup jobs to finish..."
+log "Waiting for all backup jobs to finish..."
 wait
-echo "GitHub backup complete!"
+log "GitHub backup complete!"
