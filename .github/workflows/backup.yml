@@ -34,8 +34,16 @@ jobs:
           LATEST_BACKUP=$(ls -td backups/backup_* | head -1)
           if [ -n "$LATEST_BACKUP" ]; then
             rclone copy "$LATEST_BACKUP" gdrivegit:GitHub_Backups/ --progress
-            # Keep only the last 4 backups in Drive
-            rclone lsd gdrivegit:GitHub_Backups/ | sort | head -n -4 | xargs -I {} rclone purge gdrivegit:GitHub_Backups/{}
+            # Delete backups older than 2 days
+            echo "Cleaning up backups older than 2 days..."
+            cutoff=$(date -d '2 days ago' +%Y_%m_%d)
+            rclone lsd gdrivegit:GitHub_Backups/ | grep backup_ | awk -v cutoff="$cutoff" '{gsub("backup_", "", $5); if ($5 < cutoff) print $5}' | while read dir; do
+              if [ -n "$dir" ]; then
+                echo "Removing old backup: $dir"
+                rclone purge "gdrivegit:GitHub_Backups/$dir" || echo "Failed to remove $dir (may not exist)"
+              fi
+            done
+            echo "Cleanup complete."
           else
             echo "No backup found to upload"
           fi
