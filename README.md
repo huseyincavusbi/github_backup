@@ -7,7 +7,6 @@ A simple and efficient Bash script that backs up all your public and private Git
 - **Complete Backups:** Creates a full, mirror copy of each repository, including all commits, branches, and tags.
 - **Parallel Processing:** Backs up multiple repositories simultaneously to significantly reduce the time it takes.
 - **Secure:** Uses a GitHub Personal Access Token (PAT) passed as an environment variable, not stored in the code.
-- **Simple Configuration:** Just set your username and backup location at the top of the script.
 - **Pagination Support:** Automatically fetches all repositories, even if more than 100.
 - **Logging:** Logs all operations to a file in the backup directory.
 - **Dependency Checks:** Ensures required tools are installed before running.
@@ -36,9 +35,6 @@ To enable automatic upload of backup zip files to Google Drive:
 Open the `github_backup.sh` script and edit the configuration section at the top:
 
 ```bash
-# Your GitHub username
-GITHUB_USER="YOUR_USERNAME"
-
 # Directory to save the backups in.
 BACKUP_DIR="backups/backup_$(date +%Y_%m_%d)"
 
