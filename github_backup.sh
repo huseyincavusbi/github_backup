@@ -3,8 +3,7 @@
 # A script to back up all of a user's GitHub repositories.
 
 # --- Configuration ---
-# Your GitHub username (set via GITHUB_USER env var, defaults to 'your_username')
-GITHUB_USER=${GITHUB_USER:-"your_username"}
+## No need for GitHub username; script uses authenticated user's token
 
 # Directory to save the backups in.
 BACKUP_DIR="backups/backup_$(date +%d.%m.%Y)"
@@ -15,9 +14,7 @@ BACKUP_DIR="backups/backup_$(date +%d.%m.%Y)"
 MAX_JOBS=$(nproc)
 # --- End Configuration ---
 
-if [ "$GITHUB_USER" = "your_username" ]; then
-  echo "Warning: GITHUB_USER is set to default 'your_username'. Please set it to your actual GitHub username via export GITHUB_USER=your_username"
-fi
+## No username check needed
 
 # Check for dependencies
 if ! command -v jq &> /dev/null; then
@@ -43,7 +40,7 @@ log() {
   echo "$1" | tee -a "$LOG_FILE"
 }
 
-log "Fetching repository list for user: $GITHUB_USER..."
+log "Fetching repository list for authenticated user..."
 
 # Fetch the list of repositories with pagination
 REPO_URLS=""
@@ -62,7 +59,7 @@ while true; do
 done
 
 if [ -z "$REPO_URLS" ]; then
-  echo "Could not fetch repositories. Check your username and token."
+  echo "Could not fetch repositories. Check your token."
   exit 1
 fi
 
