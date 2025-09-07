@@ -33,7 +33,7 @@ jobs:
         run: |
           LATEST_BACKUP=$(ls -td backups/backup_* | head -1)
           if [ -n "$LATEST_BACKUP" ]; then
-            rclone sync "$LATEST_BACKUP" "gdrivegit:GitHub_Backups/$(basename $LATEST_BACKUP)" --progress --transfers=8 --checkers=8 --drive-chunk-size=64M --fast-list
+            rclone copy "$LATEST_BACKUP" "gdrivegit:GitHub_Backups/$(basename $LATEST_BACKUP)" --progress --transfers=8 --checkers=8 --drive-chunk-size=64M --fast-list
             # Delete backups older than 2 days
             echo "Cleaning up backups older than 2 days..."
             cutoff=$(date -d '2 days ago' +%d.%m.%Y)
