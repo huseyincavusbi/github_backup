@@ -21,7 +21,6 @@ jobs:
         run: |
           chmod +x github_backup.sh
           GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} ./github_backup.sh
-        working-directory: github_backup
 
       - name: Configure rclone
         run: |
