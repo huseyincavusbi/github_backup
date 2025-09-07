@@ -3,8 +3,8 @@
 # A script to back up all of a user's GitHub repositories.
 
 # --- Configuration ---
-# Your GitHub username
-GITHUB_USER="huseyincavusbi"
+# Your GitHub username (set via GITHUB_USER env var, defaults to 'your_username')
+GITHUB_USER=${GITHUB_USER:-"your_username"}
 
 # Directory to save the backups in.
 BACKUP_DIR="backups/backup_$(date +%Y_%m_%d)"
@@ -14,6 +14,10 @@ BACKUP_DIR="backups/backup_$(date +%Y_%m_%d)"
 # system's performance and network connection.
 MAX_JOBS=$(nproc)
 # --- End Configuration ---
+
+if [ "$GITHUB_USER" = "your_username" ]; then
+  echo "Warning: GITHUB_USER is set to default 'your_username'. Please set it to your actual GitHub username via export GITHUB_USER=your_username"
+fi
 
 # Check for dependencies
 if ! command -v jq &> /dev/null; then
