@@ -31,7 +31,7 @@ jobs:
 
       - name: Upload to Google Drive
         run: |
-          LATEST_BACKUP=$(ls -td github_backup/backups/backup_* | head -1)
+          LATEST_BACKUP=$(ls -td backups/backup_* | head -1)
           if [ -n "$LATEST_BACKUP" ]; then
             rclone copy "$LATEST_BACKUP" gdrivegit:GitHub_Backups/ --progress
             # Keep only the last 4 backups in Drive
