@@ -21,32 +21,35 @@ You need to have `git` and `jq` installed. `jq` is a command-line JSON processor
 - **On Debian/Ubuntu:** `sudo apt-get install git jq`
 - **On macOS (using Homebrew):** `brew install git jq`
 
-### 2. Google Drive Upload Setup (Optional)
+### 2. Google Drive Upload Setup (For Automated Workflow)
 
-To enable automatic upload of backup zip files to Google Drive:
+The GitHub Actions workflow can automatically upload backups to Google Drive using rclone:
 
-1. Install rclone: `sudo apt-get install rclone` (or equivalent for your OS).
-2. Configure rclone for Google Drive: `rclone config` and create a remote named `gdrive`.
-3. Export the config: `rclone config dump | jq -r .gdrive > rclone_gdrive.conf`
-4. Add the contents of `rclone_gdrive.conf` as a GitHub secret named `RCLONE_CONFIG` in your repository settings.
-5. Ensure the Google Drive account has a folder named `GitHub_Backups` (or update the path in the workflow).
+1. Install rclone locally: `sudo apt-get install rclone` (or equivalent for your OS).
+2. Configure rclone for Google Drive: `rclone config` and create a remote named `gdrivegit`.
+3. Get the configuration: `rclone config show gdrivegit`
+4. Add the entire configuration output as a GitHub secret named `RCLONE_CONFIG` in your repository settings.
+5. Ensure the Google Drive account has a folder named `GitHub_Backups`.
+
+**Note:** This setup is only required if you want to use the automated GitHub Actions workflow. Manual script execution doesn't require Google Drive setup.
 
 ### 3. Configuration
 
-Open the `github_backup.sh` script and edit the configuration section at the top:
+The script uses environment variables for configuration:
 
 ```bash
-# Your GitHub username
-GITHUB_USER="YOUR_USERNAME"
+# Your GitHub username (set via environment variable)
+export GITHUB_USER="YOUR_USERNAME"
 
 # Directory to save the backups in.
-BACKUP_DIR="backups/backup_$(date +%Y_%m_%d)"
+BACKUP_DIR="backups/backup_$(date +%d.%m.%Y)"
 
 # The maximum number of repositories to back up at the same time.
-# Start with a low number (e.g., 4) and increase it based on your
-# system's performance and network connection.
-MAX_JOBS=4
+# Defaults to the number of CPU cores (nproc) for optimal performance.
+MAX_JOBS=$(nproc)
 ```
+
+The script will warn you if `GITHUB_USER` is not set and will default to "your_username".
 
 ### 4. Get a Personal Access Token (PAT)
 
@@ -55,19 +58,64 @@ This script requires a GitHub PAT with the **repo** scope selected.
 - Follow the [GitHub guide to create a classic PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic).
 - Copy the token immediately. You will not see it again.
 
+**For GitHub Actions workflow:** Save your token as a repository secret named `PERSONAL_GITHUB_TOKEN`.
+
 ### 5. Run the Script
+
 Before running the script, you need to make it executable:
 
 ```bash
 chmod +x github_backup.sh
 ```
-Run the script from your terminal, providing the token as an environment variable.
+
+Set your GitHub username and run the script from your terminal, providing the token as an environment variable:
 
 ```bash
+export GITHUB_USER=your_username
 GITHUB_TOKEN=ghp_YourSecretTokenGoesHere ./github_backup.sh
 ```
 
 After the backup completes, check the `backup.log` file in the backup directory for detailed logs.
+
+## GitHub Actions Workflow (Automated Backups)
+
+This repository includes a GitHub Actions workflow that automatically backs up your repositories daily and uploads them to Google Drive.
+
+### Workflow Features
+
+- **Automated Daily Backups:** Runs every day at midnight UTC
+- **Manual Trigger:** Can be triggered manually via GitHub Actions
+- **Google Drive Upload:** Automatically uploads backups to Google Drive
+- **Cleanup:** Removes backups older than 2 days from Google Drive
+- **Parallel Processing:** Uses optimized settings for faster uploads
+
+### Setting up the Workflow
+
+1. **Set up repository secrets** in your GitHub repository settings:
+   - `PERSONAL_GITHUB_TOKEN`: Your GitHub Personal Access Token with repo scope
+   - `RCLONE_CONFIG`: Your rclone configuration for Google Drive (see below)
+   - `GITHUB_USER`: Your GitHub username
+
+2. **Configure rclone for Google Drive:**
+   ```bash
+   # Install rclone locally
+   sudo apt-get install rclone  # or equivalent for your OS
+   
+   # Configure rclone for Google Drive
+   rclone config
+   # Create a remote named 'gdrivegit'
+   # Follow the prompts to authenticate with Google Drive
+   
+   # Export the config
+   rclone config show gdrivegit
+   # Copy the entire output and save it as the RCLONE_CONFIG secret
+   ```
+
+3. **Create Google Drive folder:** Ensure your Google Drive has a folder named `GitHub_Backups`
+
+4. **Enable the workflow:** The workflow will automatically run daily or can be triggered manually from the Actions tab.
+
+The workflow will create timestamped backup folders in your Google Drive and automatically clean up old backups to save space.
 
 ## How to See Your Files (Restoring from a Backup)
 

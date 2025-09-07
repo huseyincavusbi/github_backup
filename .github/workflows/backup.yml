@@ -22,7 +22,7 @@ jobs:
       - name: Run backup script
         run: |
           chmod +x github_backup.sh
-          GITHUB_TOKEN=${{ secrets.PERSONAL_GITHUB_TOKEN }} ./github_backup.sh
+          GITHUB_USER=${{ secrets.GITHUB_USER }} GITHUB_TOKEN=${{ secrets.PERSONAL_GITHUB_TOKEN }} ./github_backup.sh
 
       - name: Configure rclone
         run: |
