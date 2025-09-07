@@ -12,7 +12,7 @@ BACKUP_DIR="backups/backup_$(date +%Y_%m_%d)"
 # The maximum number of repositories to back up at the same time.
 # Start with a low number (e.g., 4) and increase it based on your
 # system's performance and network connection.
-MAX_JOBS=4
+MAX_JOBS=$(nproc)
 # --- End Configuration ---
 
 # Check for dependencies
