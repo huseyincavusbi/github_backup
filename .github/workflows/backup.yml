@@ -34,7 +34,7 @@ jobs:
           LATEST_BACKUP=$(ls -td backups/backup_* | head -1)
           if [ -n "$LATEST_BACKUP" ]; then
             # Permanently delete all contents in the target Google Drive folder without sending to trash
-            rclone delete gdrivegit:GitHub_Backups/ --drive-use-trash=false --recursive || echo "Folder may not exist or already empty, skipping delete."
+            rclone delete gdrivegit:GitHub_Backups/ --drive-use-trash=false || echo "Folder may not exist or already empty, skipping delete."
             rclone copy "$LATEST_BACKUP" gdrivegit:GitHub_Backups/ --progress
           else
             echo "No backup found to upload"
