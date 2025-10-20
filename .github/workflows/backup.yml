@@ -34,7 +34,7 @@ jobs:
           LATEST_BACKUP=$(ls -td backups/backup_* | head -1)
           if [ -n "$LATEST_BACKUP" ]; then
             # Remove all contents in the target Google Drive folder before upload
-            rclone purge gdrivegit:GitHub_Backups/ || echo "Folder may not exist, skipping purge."
+            rclone purge gdrivegit:GitHub_Backups/ --drive-skip-trash || echo "Folder may not exist, skipping purge."
             rclone copy "$LATEST_BACKUP" gdrivegit:GitHub_Backups/ --progress
           else
             echo "No backup found to upload"
