@@ -17,9 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq
-          # Install latest rclone to ensure --drive-skip-trash flag is available
-          curl -fsSL https://rclone.org/install.sh | bash
+          sudo apt-get install -y jq rclone
 
       - name: Run backup script
         run: |
@@ -36,7 +34,7 @@ jobs:
           LATEST_BACKUP=$(ls -td backups/backup_* | head -1)
           if [ -n "$LATEST_BACKUP" ]; then
             # Permanently delete all contents in the target Google Drive folder without sending to trash
-            rclone delete gdrivegit:GitHub_Backups/ --drive-skip-trash --recursive || echo "Folder may not exist or already empty, skipping delete."
+            rclone delete gdrivegit:GitHub_Backups/ --drive-use-trash=false --recursive || echo "Folder may not exist or already empty, skipping delete."
             rclone copy "$LATEST_BACKUP" gdrivegit:GitHub_Backups/ --progress
           else
             echo "No backup found to upload"
