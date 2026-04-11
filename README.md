@@ -1,56 +1,61 @@
-## GitHub Backup Script
+# GitHub Backup & Mirror
 
-This script backs up all repositories for the authenticated GitHub user using their personal access token.
+A script and GitHub Actions workflow to back up all your GitHub repositories, save them to Google Drive, and automatically mirror them to GitLab and Codeberg.
 
-Just set your `GITHUB_TOKEN` environment variable and run the script.
+## Features
 
-Backups are saved locally in a dated folder.
+- **True Mirrors:** Uses `git clone --mirror` to capture all branches, tags, and commits.
+- **Smart Sync:** Automatically creates missing repositories on GitLab/Codeberg matching your GitHub visibility (Public/Private).
+- **Parallel Processing:** Throttles concurrent backups to your CPU cores for maximum speed.
+- **Drive Retention:** Uploads a daily snapshot to Google Drive and automatically prunes backups older than 7 days.
+- **Failsafe:** Tracks errors and fails the GitHub Action workflow if any repository fails to sync.
 
-## Google Drive Upload (Optional)
+---
 
-You can automatically upload your backup files to Google Drive using rclone:
+## Setup & Automation
 
-1. Install rclone:
-	```bash
-	sudo apt-get install rclone
-	```
-2. Configure rclone for Google Drive:
-	```bash
-	rclone config
-	```
-	Follow the prompts to create a remote 
-3. The workflow will use rclone to upload backups if configured. Make sure your rclone config is accessible for Actions in your repo.
+The easiest way to use this is via the included GitHub Actions workflow, which runs completely free in the background every night.
 
-### 5. Run the Script
-Before running the script, you need to make it executable:
+### 1. Add Required Secret
+Go to your repository **Settings → Secrets and variables → Actions** and add:
+- `PERSONAL_GITHUB_TOKEN`: A GitHub Personal Access Token with the `repo` scope.
+
+### 2. Enable Cloud & Mirroring (Optional)
+To enable the advanced features, simply add these additional secrets:
+
+| Feature | Secret Name | What it does |
+| :--- | :--- | :--- |
+| **Google Drive** | `RCLONE_CONFIG` | Paste your full `rclone.conf` contents here to upload backups to Drive. |
+| **GitLab Mirror** | `GITLAB_TOKEN`<br>`GITLAB_USER` | Your GitLab PAT (`api`, `write_repository` scopes) and username. |
+| **Codeberg Mirror** | `CODEBERG_TOKEN`<br>`CODEBERG_USER` | Your Codeberg PAT (`write:repository` scope) and username. |
+
+> **Note:** You must generate the respective Personal Access Tokens on GitLab and/or Codeberg with the required scopes listed above, then add them as GitHub Actions Secrets.
+
+---
+
+## Running Locally
+
+You can also run the script manually on your own machine.
 
 ```bash
 chmod +x github_backup.sh
+
+# Basic GitHub Backup
+GITHUB_TOKEN=ghp_xxx ./github_backup.sh
+
+# Full Backup + Mirroring
+GITHUB_TOKEN=ghp_xxx \
+GITLAB_TOKEN=glpat_xxx GITLAB_USER=username \
+CODEBERG_TOKEN=xxx CODEBERG_USER=username \
+./github_backup.sh
 ```
-Run the script from your terminal, providing the token as an environment variable.
+
+---
+
+## Restoring a Backup
+
+Because this script creates **bare repositories**, there is no visible working directory. To restore your code and see your files again, simply clone the backup directory to a new folder:
 
 ```bash
-GITHUB_TOKEN=ghp_YourSecretTokenGoesHere ./github_backup.sh
+git clone /path/to/backups/backup_2026-04-11/MyProject.git 
 ```
-
-After the backup completes, check the `backup.log` file in the backup directory for detailed logs.
-
-## How to See Your Files (Restoring from a Backup)
-
-This script creates **bare repositories**. A bare repository is a complete copy of the Git database (all your commits and files), but it does not have a "working directory" with the files visible. This is the standard and safest way to store backups.
-
-To see and work with your files again, you simply clone from your local backup folder as if it were GitHub.
-
-1. Navigate to a new directory where you want to restore the project.
-2. Use the `git clone` command on your backup file:
-
-```bash
-# Example:
-git clone /path/to/your/backups/MyProject.git MyProject-restored
-```
-
-This will create a new folder `MyProject-restored` containing all your familiar scripts, notebooks, and files, with their complete Git history intact.
-
-## License
-
-This project is licensed under the MIT License.
