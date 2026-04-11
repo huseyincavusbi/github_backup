@@ -26,6 +26,13 @@ MAX_JOBS=$(nproc)
 #   CODEBERG_USER  : your codeberg.org username
 # --- End Configuration ---
 
+# Clean up tokens (GitHub Actions secrets often have trailing newlines from copy-pasting)
+GITHUB_TOKEN=$(echo "$GITHUB_TOKEN" | tr -d '\r\n ')
+GITLAB_TOKEN=$(echo "$GITLAB_TOKEN" | tr -d '\r\n ')
+GITLAB_USER=$(echo "$GITLAB_USER" | tr -d '\r\n ')
+CODEBERG_TOKEN=$(echo "$CODEBERG_TOKEN" | tr -d '\r\n ')
+CODEBERG_USER=$(echo "$CODEBERG_USER" | tr -d '\r\n ')
+
 # Check for dependencies
 if ! command -v jq &> /dev/null; then
   echo "Error: jq is not installed. Please install it first."
@@ -133,6 +140,7 @@ for ITEM in $REPO_ITEMS; do
   # Extract URL and privacy status
   REPO_URL="${ITEM%|*}"
   IS_PRIVATE="${ITEM#*|}"
+  IS_PRIVATE=$(echo "$IS_PRIVATE" | tr -d '\r\n ')
 
   # Each repo runs as a background subshell.
   # Subshells inherit: CWD, all variables, all functions.
