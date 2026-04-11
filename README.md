@@ -27,7 +27,7 @@ To enable the advanced features, simply add these additional secrets:
 | :--- | :--- | :--- |
 | **Google Drive** | `RCLONE_CONFIG` | Paste your full `rclone.conf` contents here to upload backups to Drive. |
 | **GitLab Mirror** | `GITLAB_TOKEN`<br>`GITLAB_USER` | Your GitLab PAT (`api`, `write_repository` scopes) and username. |
-| **Codeberg Mirror** | `CODEBERG_TOKEN`<br>`CODEBERG_USER` | Your Codeberg PAT (`write:repository` scope) and username. |
+| **Codeberg Mirror** | `CODEBERG_TOKEN`<br>`CODEBERG_USER` | Your Codeberg PAT (`write:repository`, `write:user` scopes) and username. |
 
 > **Note:** You must generate the respective Personal Access Tokens on GitLab and/or Codeberg with the required scopes listed above, then add them as GitHub Actions Secrets.
 
