@@ -27,11 +27,11 @@ MAX_JOBS=$(nproc)
 # --- End Configuration ---
 
 # Clean up tokens (GitHub Actions secrets often have trailing newlines from copy-pasting)
-GITHUB_TOKEN=$(echo "$GITHUB_TOKEN" | tr -d '\r\n ')
-GITLAB_TOKEN=$(echo "$GITLAB_TOKEN" | tr -d '\r\n ')
-GITLAB_USER=$(echo "$GITLAB_USER" | tr -d '\r\n ')
-CODEBERG_TOKEN=$(echo "$CODEBERG_TOKEN" | tr -d '\r\n ')
-CODEBERG_USER=$(echo "$CODEBERG_USER" | tr -d '\r\n ')
+GITHUB_TOKEN=$(echo "$GITHUB_TOKEN" | sed 's/[[:space:]]//g')
+GITLAB_TOKEN=$(echo "$GITLAB_TOKEN" | sed 's/[[:space:]]//g')
+GITLAB_USER=$(echo "$GITLAB_USER" | sed 's/[[:space:]]//g')
+CODEBERG_TOKEN=$(echo "$CODEBERG_TOKEN" | sed 's/[[:space:]]//g')
+CODEBERG_USER=$(echo "$CODEBERG_USER" | sed 's/[[:space:]]//g')
 
 # Check for dependencies
 if ! command -v jq &> /dev/null; then
@@ -140,7 +140,7 @@ for ITEM in $REPO_ITEMS; do
   # Extract URL and privacy status
   REPO_URL="${ITEM%|*}"
   IS_PRIVATE="${ITEM#*|}"
-  IS_PRIVATE=$(echo "$IS_PRIVATE" | tr -d '\r\n ')
+  IS_PRIVATE=$(echo "$IS_PRIVATE" | sed 's/[[:space:]]//g')
 
   # Each repo runs as a background subshell.
   # Subshells inherit: CWD, all variables, all functions.
