@@ -30,22 +30,53 @@ jobs:
           sudo apt-get install -y jq rclone
 
       - name: Run backup script
+        env:
+          GITHUB_TOKEN:   ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+          GITLAB_TOKEN:   ${{ secrets.GITLAB_TOKEN }}
+          GITLAB_USER:    ${{ secrets.GITLAB_USER }}
+          CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
+          CODEBERG_USER:  ${{ secrets.CODEBERG_USER }}
         run: |
           chmod +x github_backup.sh
-          GITHUB_TOKEN=${{ secrets.PERSONAL_GITHUB_TOKEN }} ./github_backup.sh
+          ./github_backup.sh
 
       - name: Configure rclone
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
 
-      - name: Upload to Google Drive
+      - name: Upload to Google Drive with snapshot retention
         run: |
+          # Number of dated backup folders to keep on Drive.
+          # Older snapshots beyond this count are permanently deleted.
+          KEEP_BACKUPS=7
+
           LATEST_BACKUP=$(ls -td backups/backup_* | head -1)
-          if [ -n "$LATEST_BACKUP" ]; then
-            # Permanently delete all contents in the target Google Drive folder without sending to trash
-            rclone delete gdrivegit:GitHub_Backups/ --drive-use-trash=false || echo "Folder may not exist or already empty, skipping delete."
-            rclone copy "$LATEST_BACKUP" gdrivegit:GitHub_Backups/ --progress
-          else
+          if [ -z "$LATEST_BACKUP" ]; then
             echo "No backup found to upload"
+            exit 0
           fi
+
+          BACKUP_NAME=$(basename "$LATEST_BACKUP")   # e.g. backup_2026-04-11
+          echo "Uploading: $BACKUP_NAME → gdrivegit:GitHub_Backups/$BACKUP_NAME/"
+          rclone copy "$LATEST_BACKUP" "gdrivegit:GitHub_Backups/${BACKUP_NAME}/" --progress
+
+          # --- Prune old snapshots beyond retention window ---
+          echo "Pruning old Drive backups (keeping last $KEEP_BACKUPS)..."
+          # List all backup_* folders on Drive, sort newest-first.
+          # YYYY-MM-DD naming means lexicographic sort == chronological sort.
+          ALL_BACKUPS=$(rclone lsd gdrivegit:GitHub_Backups/ \
+            | awk '{print $NF}' \
+            | grep '^backup_' \
+            | sort -r)
+
+          COUNT=0
+          while IFS= read -r folder; do
+            COUNT=$((COUNT + 1))
+            if [ "$COUNT" -gt "$KEEP_BACKUPS" ]; then
+              echo "  Deleting old backup: $folder"
+              rclone purge "gdrivegit:GitHub_Backups/${folder}" --drive-use-trash=false
+            fi
+          done <<< "$ALL_BACKUPS"
+
+          echo "Drive upload and pruning complete."
