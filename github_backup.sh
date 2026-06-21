@@ -96,13 +96,26 @@ ensure_gitlab_repo() {
 ensure_codeberg_repo() {
   local repo_name="$1"
   local is_private="$2"
+
+  # Check if the repo already exists first (GET) — avoids relying on
+  # POST returning 409 which some Forgejo versions break (HTTP 500).
+  local exists_code
+  exists_code=$(curl -s -o /dev/null -w "%{http_code}" \
+    "https://codeberg.org/api/v1/repos/${CODEBERG_USER}/${repo_name}" \
+    -H "Authorization: token $CODEBERG_TOKEN")
+
+  if [ "$exists_code" = "200" ]; then
+    return 0
+  fi
+
+  # Repo doesn't exist yet — attempt to create via POST
   local http_code
   http_code=$(curl -s -o /dev/null -w "%{http_code}" \
     -X POST "https://codeberg.org/api/v1/user/repos" \
     -H "Authorization: token $CODEBERG_TOKEN" \
     -H "Content-Type: application/json" \
     -d "{\"name\":\"${repo_name}\",\"private\":${is_private},\"auto_init\":false}")
-  # 201 = created, 409 = already exists
+  # 201 = created, 409 = already exists (race condition with parallel jobs)
   if [ "$http_code" = "201" ] || [ "$http_code" = "409" ]; then
     return 0
   fi
