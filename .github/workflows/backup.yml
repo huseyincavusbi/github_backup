@@ -34,8 +34,9 @@ jobs:
           GITHUB_TOKEN:   ${{ secrets.PERSONAL_GITHUB_TOKEN }}
           GITLAB_TOKEN:   ${{ secrets.GITLAB_TOKEN }}
           GITLAB_USER:    ${{ secrets.GITLAB_USER }}
-          CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
-          CODEBERG_USER:  ${{ secrets.CODEBERG_USER }}
+          # Codeberg mirroring temporarily disabled
+          # CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
+          # CODEBERG_USER:  ${{ secrets.CODEBERG_USER }}
         run: |
           chmod +x github_backup.sh
           ./github_backup.sh
