@@ -1,0 +1,13 @@
+# Backup data
+backups/
+*.log
+
+# Python virtualenv & bytecode
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# OS artifacts
+.DS_Store
+Thumbs.db
