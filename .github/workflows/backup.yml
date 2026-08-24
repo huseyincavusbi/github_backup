@@ -14,32 +14,43 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Display system information
+      - name: Display system and runner geolocation information
         run: |
-          echo "OS Information:"
+          echo "=== OS Information ==="
           uname -a
           echo ""
-          echo "CPU Information:"
+          echo "=== CPU Information ==="
           nproc
           echo "CPU Details:"
           lscpu | head -10
+          echo ""
+          echo "=== Runner Network & Geolocation ==="
+          curl -s https://ipinfo.io/json || curl -s https://ifconfig.me/all
 
-      - name: Install dependencies
+      - name: Setup uv and Python 3.13
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq rclone
+          sudo apt-get install -y jq rclone git
 
-      - name: Run backup script
+      - name: Install Python dependencies with uv
+        run: |
+          uv sync --frozen
+
+      - name: Run backup engine
         env:
           GITHUB_TOKEN:   ${{ secrets.PERSONAL_GITHUB_TOKEN }}
           GITLAB_TOKEN:   ${{ secrets.GITLAB_TOKEN }}
           GITLAB_USER:    ${{ secrets.GITLAB_USER }}
-          # Codeberg mirroring temporarily disabled
-          # CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
-          # CODEBERG_USER:  ${{ secrets.CODEBERG_USER }}
+          CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
+          CODEBERG_USER:  ${{ secrets.CODEBERG_USER }}
         run: |
-          chmod +x github_backup.sh
-          ./github_backup.sh
+          uv run python backup_engine.py
 
       - name: Configure rclone
         run: |
@@ -58,7 +69,7 @@ jobs:
             exit 0
           fi
 
-          BACKUP_NAME=$(basename "$LATEST_BACKUP")   # e.g. backup_2026-04-11
+          BACKUP_NAME=$(basename "$LATEST_BACKUP")   # e.g. backup_2026-08-24
           echo "Uploading: $BACKUP_NAME → gdrivegit:GitHub_Backups/$BACKUP_NAME/"
           rclone copy "$LATEST_BACKUP" "gdrivegit:GitHub_Backups/${BACKUP_NAME}/" --progress
 
