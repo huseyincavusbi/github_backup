@@ -35,7 +35,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq rclone git
+          sudo apt-get install -y jq rclone git zip
 
       - name: Install Python dependencies with uv
         run: |
@@ -56,37 +56,47 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
 
-      - name: Upload to Google Drive with snapshot retention
+      - name: Archive to ZIP and upload to Google Drive with snapshot retention
         run: |
-          # Number of dated backup folders to keep on Drive.
-          # Older snapshots beyond this count are permanently deleted.
+          # Number of dated backup archives to keep on Drive.
           KEEP_BACKUPS=7
 
-          LATEST_BACKUP=$(ls -td backups/backup_* | head -1)
+          LATEST_BACKUP=$(ls -td backups/backup_* 2>/dev/null | grep -v '\.zip$' | head -1)
           if [ -z "$LATEST_BACKUP" ]; then
-            echo "No backup found to upload"
+            echo "No backup directory found to upload"
             exit 0
           fi
 
           BACKUP_NAME=$(basename "$LATEST_BACKUP")   # e.g. backup_2026-08-24
-          echo "Uploading: $BACKUP_NAME → gdrivegit:GitHub_Backups/$BACKUP_NAME/"
-          rclone copy "$LATEST_BACKUP" "gdrivegit:GitHub_Backups/${BACKUP_NAME}/" --progress
+          echo "Compressing $BACKUP_NAME into ZIP archive on runner disk..."
 
-          # --- Prune old snapshots beyond retention window ---
-          echo "Pruning old Drive backups (keeping last $KEEP_BACKUPS)..."
-          # List all backup_* folders on Drive, sort newest-first.
-          # YYYY-MM-DD naming means lexicographic sort == chronological sort.
-          ALL_BACKUPS=$(rclone lsd gdrivegit:GitHub_Backups/ \
-            | awk '{print $NF}' \
-            | grep '^backup_' \
+          cd backups
+          zip -r -q "temp_${BACKUP_NAME}.zip" "$BACKUP_NAME"
+
+          # Calculate exact file size in KB
+          SIZE_BYTES=$(stat -c%s "temp_${BACKUP_NAME}.zip" 2>/dev/null || stat -f%z "temp_${BACKUP_NAME}.zip")
+          SIZE_KB=$(( (SIZE_BYTES + 1023) / 1024 ))
+          ZIP_NAME="${BACKUP_NAME}__${SIZE_KB}KB.zip"
+          mv "temp_${BACKUP_NAME}.zip" "$ZIP_NAME"
+
+          echo "Archive created: $ZIP_NAME (${SIZE_KB} KB)"
+          echo "Uploading $ZIP_NAME → gdrivegit:GitHub_Backups/"
+          rclone copy "$ZIP_NAME" "gdrivegit:GitHub_Backups/" --progress
+
+          # --- Prune old ZIP archives beyond retention window ---
+          echo "Pruning old Drive backup archives (keeping last $KEEP_BACKUPS)..."
+          ALL_BACKUPS=$(rclone lsf gdrivegit:GitHub_Backups/ \
+            | grep '^backup_.*\.zip$' \
             | sort -r)
 
           COUNT=0
-          while IFS= read -r folder; do
-            COUNT=$((COUNT + 1))
-            if [ "$COUNT" -gt "$KEEP_BACKUPS" ]; then
-              echo "  Deleting old backup: $folder"
-              rclone purge "gdrivegit:GitHub_Backups/${folder}" --drive-use-trash=false
+          while IFS= read -r file; do
+            if [ -n "$file" ]; then
+              COUNT=$((COUNT + 1))
+              if [ "$COUNT" -gt "$KEEP_BACKUPS" ]; then
+                echo "  Deleting old backup archive: $file"
+                rclone deletefile "gdrivegit:GitHub_Backups/${file}" --drive-use-trash=false
+              fi
             fi
           done <<< "$ALL_BACKUPS"
 
